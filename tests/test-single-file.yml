@@ -1,0 +1,45 @@
+name: Test single file substitution
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GREETING: "Hello, World!"
+      MY_VAR: "test-value-123"
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create input file
+        run: |
+          mkdir -p /tmp/envsubst-test
+          cat > /tmp/envsubst-test/input.txt << 'EOF'
+          greeting=${GREETING}
+          var=${MY_VAR}
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          working-directory: /tmp/envsubst-test
+          input-file: input.txt
+          output-file: output.txt
+
+      - name: Assert output file exists and contains substituted values
+        run: |
+          OUTPUT_FILE="/tmp/envsubst-test/output.txt"
+          if [ ! -f "$OUTPUT_FILE" ]; then
+            echo "FAIL: output file does not exist at $OUTPUT_FILE"
+            exit 1
+          fi
+          echo "Output file contents:"
+          cat "$OUTPUT_FILE"
+          if ! grep -q "Hello, World!" "$OUTPUT_FILE"; then
+            echo "FAIL: expected GREETING to be substituted with 'Hello, World!'"
+            exit 1
+          fi
+          if ! grep -q "test-value-123" "$OUTPUT_FILE"; then
+            echo "FAIL: expected MY_VAR to be substituted with 'test-value-123'"
+            exit 1
+          fi
+          echo "PASS"

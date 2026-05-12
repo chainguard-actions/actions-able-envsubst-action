@@ -1,0 +1,45 @@
+name: Test default suffix substitution
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: "postgres://localhost:5432/mydb"
+      SECRET_KEY: "supersecret"
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create input file for default suffix test
+        run: |
+          mkdir -p /tmp/envsubst-suffix
+          cat > /tmp/envsubst-suffix/app.conf << 'EOF'
+          db_url=${DATABASE_URL}
+          secret=${SECRET_KEY}
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          working-directory: /tmp/envsubst-suffix
+          input-file: app.conf
+          output-file: app.conf.subst
+
+      - name: Assert output file with default-style suffix exists and is correct
+        run: |
+          OUTPUT_FILE="/tmp/envsubst-suffix/app.conf.subst"
+          if [ ! -f "$OUTPUT_FILE" ]; then
+            echo "FAIL: output file $OUTPUT_FILE does not exist"
+            exit 1
+          fi
+          echo "Output file contents:"
+          cat "$OUTPUT_FILE"
+          if ! grep -q "postgres://localhost:5432/mydb" "$OUTPUT_FILE"; then
+            echo "FAIL: expected DATABASE_URL to be substituted"
+            exit 1
+          fi
+          if ! grep -q "supersecret" "$OUTPUT_FILE"; then
+            echo "FAIL: expected SECRET_KEY to be substituted"
+            exit 1
+          fi
+          echo "PASS"
