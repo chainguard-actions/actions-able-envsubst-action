@@ -1,0 +1,7 @@
+{
+  "owner": "actions-able",
+  "name": "envsubst-action",
+  "visibility": "internal",
+  "description": "Substitutes the values of environment variables in one file or in multiple files following patterns",
+  "block_publish": false
+}
