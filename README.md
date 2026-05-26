@@ -10,6 +10,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 |---------|-----|-----------------|
 | v1.0.0 | [`v1.0.0`](https://github.com/chainguard-actions/actions-able-envsubst-action/tree/v1.0.0) | [`a3af9a6`](https://github.com/actions-able/envsubst-action/commit/a3af9a6d9761e87b3cb25409e7ca9fd7dccd071e) |
 | v1.0.1 | [`v1.0.1`](https://github.com/chainguard-actions/actions-able-envsubst-action/tree/v1.0.1) | [`9782f12`](https://github.com/actions-able/envsubst-action/commit/9782f127c90391c332e9bce425a541f970afdb69) |
+| v1.1.0 | [`v1.1.0`](https://github.com/chainguard-actions/actions-able-envsubst-action/tree/v1.1.0) | [`51585dd`](https://github.com/actions-able/envsubst-action/commit/51585dd5631f92eca5c7c1bdb0efe38f2fc57c3d) |
 | v1.2.0 | [`v1.2.0`](https://github.com/chainguard-actions/actions-able-envsubst-action/tree/v1.2.0) | [`d83b930`](https://github.com/actions-able/envsubst-action/commit/d83b930793114f06452ec044c80f1d0c8412a812) |
 
 ## Privacy
