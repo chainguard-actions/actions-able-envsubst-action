@@ -5,22 +5,16 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      APP_NAME: "my-app"
       APP_VERSION: "2.0.0"
+      APP_NAME: "myapp"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Create multiple input files matching pattern
+      - name: Create input files matching pattern
         run: |
           mkdir -p /tmp/envsubst-pattern
-          cat > /tmp/envsubst-pattern/config1.tmpl << 'EOF'
-          app=${APP_NAME}
-          version=${APP_VERSION}
-          EOF
-          cat > /tmp/envsubst-pattern/config2.tmpl << 'EOF'
-          service=${APP_NAME}-service
-          tag=${APP_VERSION}
-          EOF
+          echo 'name: ${APP_NAME}' > /tmp/envsubst-pattern/config1.tmpl
+          echo 'version: ${APP_VERSION}' > /tmp/envsubst-pattern/config2.tmpl
 
       - id: action
         uses: .
@@ -29,36 +23,18 @@ jobs:
           input-file-pattern: "*.tmpl"
           output-file-suffix: ".out"
 
-      - name: Assert output files exist and contain substituted values
+      - name: Assert output files exist and have substituted content
         run: |
-          echo "Listing output directory:"
-          ls -la /tmp/envsubst-pattern/
-          # Check config1.tmpl.out
-          OUT1="/tmp/envsubst-pattern/config1.tmpl.out"
-          if [ ! -f "$OUT1" ]; then
-            echo "FAIL: output file $OUT1 does not exist"
+          OUT1=$(cat /tmp/envsubst-pattern/config1.out)
+          OUT2=$(cat /tmp/envsubst-pattern/config2.out)
+          echo "config1.out: $OUT1"
+          echo "config2.out: $OUT2"
+          if [ "$OUT1" != "name: myapp" ]; then
+            echo "FAIL: config1.out expected 'name: myapp' but got '$OUT1'"
             exit 1
           fi
-          echo "config1.tmpl.out contents:"
-          cat "$OUT1"
-          if ! grep -q "my-app" "$OUT1"; then
-            echo "FAIL: expected APP_NAME to be substituted in config1.tmpl.out"
-            exit 1
-          fi
-          if ! grep -q "2.0.0" "$OUT1"; then
-            echo "FAIL: expected APP_VERSION to be substituted in config1.tmpl.out"
-            exit 1
-          fi
-          # Check config2.tmpl.out
-          OUT2="/tmp/envsubst-pattern/config2.tmpl.out"
-          if [ ! -f "$OUT2" ]; then
-            echo "FAIL: output file $OUT2 does not exist"
-            exit 1
-          fi
-          echo "config2.tmpl.out contents:"
-          cat "$OUT2"
-          if ! grep -q "my-app-service" "$OUT2"; then
-            echo "FAIL: expected APP_NAME substitution in config2.tmpl.out"
+          if [ "$OUT2" != "version: 2.0.0" ]; then
+            echo "FAIL: config2.out expected 'version: 2.0.0' but got '$OUT2'"
             exit 1
           fi
           echo "PASS"

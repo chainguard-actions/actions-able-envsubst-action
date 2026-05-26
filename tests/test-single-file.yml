@@ -5,18 +5,15 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      GREETING: "Hello, World!"
-      MY_VAR: "test-value-123"
+      MY_NAME: "WorldTest"
+      GREETING: "Hello"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Create input file
         run: |
           mkdir -p /tmp/envsubst-test
-          cat > /tmp/envsubst-test/input.txt << 'EOF'
-          greeting=${GREETING}
-          var=${MY_VAR}
-          EOF
+          echo '${GREETING}, ${MY_NAME}!' > /tmp/envsubst-test/input.txt
 
       - id: action
         uses: .
@@ -25,21 +22,12 @@ jobs:
           input-file: input.txt
           output-file: output.txt
 
-      - name: Assert output file exists and contains substituted values
+      - name: Assert output file content
         run: |
-          OUTPUT_FILE="/tmp/envsubst-test/output.txt"
-          if [ ! -f "$OUTPUT_FILE" ]; then
-            echo "FAIL: output file does not exist at $OUTPUT_FILE"
-            exit 1
-          fi
-          echo "Output file contents:"
-          cat "$OUTPUT_FILE"
-          if ! grep -q "Hello, World!" "$OUTPUT_FILE"; then
-            echo "FAIL: expected GREETING to be substituted with 'Hello, World!'"
-            exit 1
-          fi
-          if ! grep -q "test-value-123" "$OUTPUT_FILE"; then
-            echo "FAIL: expected MY_VAR to be substituted with 'test-value-123'"
+          OUTPUT=$(cat /tmp/envsubst-test/output.txt)
+          echo "actual: $OUTPUT"
+          if [ "$OUTPUT" != "Hello, WorldTest!" ]; then
+            echo "FAIL: expected 'Hello, WorldTest!' but got '$OUTPUT'"
             exit 1
           fi
           echo "PASS"
