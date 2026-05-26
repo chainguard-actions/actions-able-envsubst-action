@@ -1,0 +1,54 @@
+name: Test pattern-based file substitution
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      APP_ENV: "production"
+      APP_VERSION: "1.2.3"
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create input files matching pattern
+        run: |
+          mkdir -p /tmp/envsubst-pattern
+          printf 'env=%s\n' '$APP_ENV' > /tmp/envsubst-pattern/config1.tmpl
+          printf 'version=%s\n' '$APP_VERSION' > /tmp/envsubst-pattern/config2.tmpl
+          echo "Input file 1:"
+          cat /tmp/envsubst-pattern/config1.tmpl
+          echo "Input file 2:"
+          cat /tmp/envsubst-pattern/config2.tmpl
+
+      - id: action
+        uses: .
+        with:
+          working-directory: /tmp/envsubst-pattern
+          input-file-pattern: "*.tmpl"
+          output-file-suffix: ".out"
+
+      - name: Assert output files exist and contain substituted values
+        run: |
+          echo "Output file 1 contents:"
+          cat /tmp/envsubst-pattern/config1.tmpl.out
+
+          echo "Output file 2 contents:"
+          cat /tmp/envsubst-pattern/config2.tmpl.out
+
+          ACTUAL_ENV=$(grep '^env=' /tmp/envsubst-pattern/config1.tmpl.out | cut -d= -f2)
+          ACTUAL_VERSION=$(grep '^version=' /tmp/envsubst-pattern/config2.tmpl.out | cut -d= -f2)
+
+          echo "actual env: $ACTUAL_ENV"
+          echo "actual version: $ACTUAL_VERSION"
+
+          if [ "$ACTUAL_ENV" != "production" ]; then
+            echo "FAIL: expected env 'production', got '$ACTUAL_ENV'"
+            exit 1
+          fi
+
+          if [ "$ACTUAL_VERSION" != "1.2.3" ]; then
+            echo "FAIL: expected version '1.2.3', got '$ACTUAL_VERSION'"
+            exit 1
+          fi
+
+          echo "PASS"

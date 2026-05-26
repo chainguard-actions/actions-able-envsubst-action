@@ -1,0 +1,48 @@
+name: Test basic single-file substitution
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GREETING: "Hello World"
+      MY_NAME: "envsubst-action"
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create input file
+        run: |
+          mkdir -p /tmp/envsubst-test
+          printf 'greeting=%s\nname=%s\n' '$GREETING' '$MY_NAME' > /tmp/envsubst-test/input.txt
+          echo "Input file contents:"
+          cat /tmp/envsubst-test/input.txt
+
+      - id: action
+        uses: .
+        with:
+          working-directory: /tmp/envsubst-test
+          input-file: input.txt
+          output-file: output.txt
+
+      - name: Assert output file exists and contains substituted values
+        run: |
+          echo "Output file contents:"
+          cat /tmp/envsubst-test/output.txt
+
+          ACTUAL_GREETING=$(grep '^greeting=' /tmp/envsubst-test/output.txt | cut -d= -f2)
+          ACTUAL_NAME=$(grep '^name=' /tmp/envsubst-test/output.txt | cut -d= -f2)
+
+          echo "actual greeting: $ACTUAL_GREETING"
+          echo "actual name: $ACTUAL_NAME"
+
+          if [ "$ACTUAL_GREETING" != "Hello World" ]; then
+            echo "FAIL: expected greeting 'Hello World', got '$ACTUAL_GREETING'"
+            exit 1
+          fi
+
+          if [ "$ACTUAL_NAME" != "envsubst-action" ]; then
+            echo "FAIL: expected name 'envsubst-action', got '$ACTUAL_NAME'"
+            exit 1
+          fi
+
+          echo "PASS"
