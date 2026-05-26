@@ -1,0 +1,41 @@
+name: Test file pattern substitution
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      APP_ENV: "production"
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create input files matching pattern
+        run: |
+          mkdir -p /tmp/envsubst-pattern
+          echo "Environment: \$APP_ENV" > /tmp/envsubst-pattern/config.tmpl
+          echo "App: \$APP_ENV mode" > /tmp/envsubst-pattern/settings.tmpl
+
+      - id: action
+        uses: .
+        with:
+          working-directory: /tmp/envsubst-pattern
+          input-file-pattern: "*.tmpl"
+          output-file-suffix: ".out"
+
+      - name: Assert output files exist and contain substituted values
+        run: |
+          CONFIG=$(cat /tmp/envsubst-pattern/config.tmpl.out)
+          echo "config actual: $CONFIG"
+          if [ "$CONFIG" != "Environment: production" ]; then
+            echo "FAIL: expected 'Environment: production' but got '$CONFIG'"
+            exit 1
+          fi
+
+          SETTINGS=$(cat /tmp/envsubst-pattern/settings.tmpl.out)
+          echo "settings actual: $SETTINGS"
+          if [ "$SETTINGS" != "App: production mode" ]; then
+            echo "FAIL: expected 'App: production mode' but got '$SETTINGS'"
+            exit 1
+          fi
+
+          echo "PASS"

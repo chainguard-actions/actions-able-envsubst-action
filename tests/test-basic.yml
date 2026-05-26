@@ -1,0 +1,32 @@
+name: Test basic usage with default suffix
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GREETING: "Hello"
+      TARGET: "GitHub"
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create input file
+        run: |
+          mkdir -p /tmp/envsubst-basic
+          echo "\$GREETING, \$TARGET!" > /tmp/envsubst-basic/message.txt
+
+      - id: action
+        uses: .
+        with:
+          working-directory: /tmp/envsubst-basic
+          input-file-pattern: "*.txt"
+
+      - name: Assert output file with default .subst suffix
+        run: |
+          OUTPUT=$(cat /tmp/envsubst-basic/message.txt.subst)
+          echo "actual: $OUTPUT"
+          if [ "$OUTPUT" != "Hello, GitHub!" ]; then
+            echo "FAIL: expected 'Hello, GitHub!' but got '$OUTPUT'"
+            exit 1
+          fi
+          echo "PASS"
