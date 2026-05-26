@@ -1,0 +1,50 @@
+name: Test pattern-based file substitution
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      APP_NAME: "my-app"
+      APP_VERSION: "1.2.3"
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create input files matching pattern
+        run: |
+          mkdir -p /tmp/envsubst-pattern
+          echo 'app=${APP_NAME}' > /tmp/envsubst-pattern/config.tmpl
+          echo 'version=${APP_VERSION}' >> /tmp/envsubst-pattern/config.tmpl
+          echo 'name=${APP_NAME}' > /tmp/envsubst-pattern/deploy.tmpl
+          echo 'tag=${APP_VERSION}' >> /tmp/envsubst-pattern/deploy.tmpl
+
+      - id: action
+        uses: .
+        with:
+          working-directory: /tmp/envsubst-pattern
+          input-file-pattern: "*.tmpl"
+          output-file-suffix: ".out"
+
+      - name: Assert output files exist and contain substituted values
+        run: |
+          echo "=== config.tmpl.out ==="
+          cat /tmp/envsubst-pattern/config.tmpl.out
+          if ! grep -q "app=my-app" /tmp/envsubst-pattern/config.tmpl.out; then
+            echo "FAIL: expected 'app=my-app' in config.tmpl.out"
+            exit 1
+          fi
+          if ! grep -q "version=1.2.3" /tmp/envsubst-pattern/config.tmpl.out; then
+            echo "FAIL: expected 'version=1.2.3' in config.tmpl.out"
+            exit 1
+          fi
+          echo "=== deploy.tmpl.out ==="
+          cat /tmp/envsubst-pattern/deploy.tmpl.out
+          if ! grep -q "name=my-app" /tmp/envsubst-pattern/deploy.tmpl.out; then
+            echo "FAIL: expected 'name=my-app' in deploy.tmpl.out"
+            exit 1
+          fi
+          if ! grep -q "tag=1.2.3" /tmp/envsubst-pattern/deploy.tmpl.out; then
+            echo "FAIL: expected 'tag=1.2.3' in deploy.tmpl.out"
+            exit 1
+          fi
+          echo "PASS"

@@ -1,0 +1,38 @@
+name: Test default output suffix
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      SERVICE_NAME: "backend"
+      PORT: "8080"
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create input file
+        run: |
+          mkdir -p /tmp/envsubst-suffix
+          echo 'service=${SERVICE_NAME}' > /tmp/envsubst-suffix/service.conf
+          echo 'port=${PORT}' >> /tmp/envsubst-suffix/service.conf
+
+      - id: action
+        uses: .
+        with:
+          working-directory: /tmp/envsubst-suffix
+          input-file: service.conf
+          output-file: service.conf.subst
+
+      - name: Assert output file with default suffix contains substituted values
+        run: |
+          echo "=== service.conf.subst ==="
+          cat /tmp/envsubst-suffix/service.conf.subst
+          if ! grep -q "service=backend" /tmp/envsubst-suffix/service.conf.subst; then
+            echo "FAIL: expected 'service=backend' in service.conf.subst"
+            exit 1
+          fi
+          if ! grep -q "port=8080" /tmp/envsubst-suffix/service.conf.subst; then
+            echo "FAIL: expected 'port=8080' in service.conf.subst"
+            exit 1
+          fi
+          echo "PASS"
