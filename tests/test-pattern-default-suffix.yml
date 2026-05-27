@@ -1,0 +1,31 @@
+name: Test pattern substitution with default suffix
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GREETING: "world"
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create input file matching pattern
+        run: |
+          mkdir -p /tmp/envsubst-default-suffix
+          echo 'hello=${GREETING}' > /tmp/envsubst-default-suffix/hello.env.tmpl
+
+      - id: action
+        uses: .
+        with:
+          working-directory: /tmp/envsubst-default-suffix
+          input-file-pattern: "*.tmpl"
+
+      - name: Assert output file with default suffix (.subst) contains substituted value
+        run: |
+          OUTPUT=$(cat /tmp/envsubst-default-suffix/hello.env.tmpl.subst)
+          echo "actual: $OUTPUT"
+          if [ "$OUTPUT" != "hello=world" ]; then
+            echo "FAIL: expected 'hello=world', got '$OUTPUT'"
+            exit 1
+          fi
+          echo "PASS"

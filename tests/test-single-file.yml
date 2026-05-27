@@ -5,15 +5,14 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      MY_NAME: "WorldTest"
-      GREETING: "Hello"
+      MY_VAR: "hello-world"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Create input file
         run: |
           mkdir -p /tmp/envsubst-test
-          echo '${GREETING}, ${MY_NAME}!' > /tmp/envsubst-test/input.txt
+          echo 'greeting=${MY_VAR}' > /tmp/envsubst-test/input.txt
 
       - id: action
         uses: .
@@ -22,12 +21,14 @@ jobs:
           input-file: input.txt
           output-file: output.txt
 
-      - name: Assert output file content
+      - name: Assert output file contains substituted value
+        env:
+          MY_VAR: "hello-world"
         run: |
           OUTPUT=$(cat /tmp/envsubst-test/output.txt)
           echo "actual: $OUTPUT"
-          if [ "$OUTPUT" != "Hello, WorldTest!" ]; then
-            echo "FAIL: expected 'Hello, WorldTest!' but got '$OUTPUT'"
+          if [ "$OUTPUT" != "greeting=hello-world" ]; then
+            echo "FAIL: expected 'greeting=hello-world', got '$OUTPUT'"
             exit 1
           fi
           echo "PASS"
