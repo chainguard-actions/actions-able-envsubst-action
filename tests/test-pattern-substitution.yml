@@ -1,0 +1,58 @@
+name: Test pattern-based file substitution
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Run envsubst action with file pattern
+        id: action
+        uses: .
+        env:
+          SERVICE_NAME: my-service
+          APP_VERSION: "1.2.3"
+          DB_HOST: localhost
+          DB_PORT: "5432"
+        with:
+          working-directory: tests/fixtures/pattern
+          input-file-pattern: "*.tmpl"
+          output-file-suffix: ".subst"
+
+      - name: Assert output files were created with substituted values
+        run: |
+          FILE1="$GITHUB_WORKSPACE/tests/fixtures/pattern/config1.tmpl.subst"
+          FILE2="$GITHUB_WORKSPACE/tests/fixtures/pattern/config2.tmpl.subst"
+
+          if [ ! -f "$FILE1" ]; then
+            echo "FAIL: output file config1.tmpl.subst was not created"
+            exit 1
+          fi
+          if [ ! -f "$FILE2" ]; then
+            echo "FAIL: output file config2.tmpl.subst was not created"
+            exit 1
+          fi
+
+          echo "config1.tmpl.subst contents:"
+          cat "$FILE1"
+          echo "config2.tmpl.subst contents:"
+          cat "$FILE2"
+
+          if ! grep -q "service: my-service" "$FILE1"; then
+            echo "FAIL: expected 'service: my-service' in config1.tmpl.subst"
+            exit 1
+          fi
+          if ! grep -q "version: 1.2.3" "$FILE1"; then
+            echo "FAIL: expected 'version: 1.2.3' in config1.tmpl.subst"
+            exit 1
+          fi
+          if ! grep -q "host: localhost" "$FILE2"; then
+            echo "FAIL: expected 'host: localhost' in config2.tmpl.subst"
+            exit 1
+          fi
+          if ! grep -q "port: 5432" "$FILE2"; then
+            echo "FAIL: expected 'port: 5432' in config2.tmpl.subst"
+            exit 1
+          fi
+          echo "PASS: all files were substituted correctly with pattern matching"

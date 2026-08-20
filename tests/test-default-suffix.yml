@@ -1,38 +1,37 @@
-name: Test default output suffix
+name: Test default output-file-suffix with pattern substitution
 on:
   workflow_dispatch:
 jobs:
   test:
     runs-on: ubuntu-latest
-    env:
-      SERVICE_NAME: "backend"
-      PORT: "8080"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Create input file
-        run: |
-          mkdir -p /tmp/envsubst-suffix
-          echo 'service=${SERVICE_NAME}' > /tmp/envsubst-suffix/service.conf
-          echo 'port=${PORT}' >> /tmp/envsubst-suffix/service.conf
-
-      - id: action
+      - name: Run envsubst action using default output-file-suffix (.subst)
+        id: action
         uses: .
+        env:
+          DATABASE_URL: "postgres://localhost:5432/mydb"
+          API_KEY: "secret-key-12345"
         with:
-          working-directory: /tmp/envsubst-suffix
-          input-file: service.conf
-          output-file: service.conf.subst
+          working-directory: tests/fixtures/default-suffix
+          input-file-pattern: "*.template"
 
-      - name: Assert output file with default suffix contains substituted values
+      - name: Assert output file was created with default .subst suffix
         run: |
-          echo "=== service.conf.subst ==="
-          cat /tmp/envsubst-suffix/service.conf.subst
-          if ! grep -q "service=backend" /tmp/envsubst-suffix/service.conf.subst; then
-            echo "FAIL: expected 'service=backend' in service.conf.subst"
+          OUTPUT_FILE="$GITHUB_WORKSPACE/tests/fixtures/default-suffix/app.env.template.subst"
+          if [ ! -f "$OUTPUT_FILE" ]; then
+            echo "FAIL: output file app.env.template.subst was not created (default suffix .subst not applied)"
             exit 1
           fi
-          if ! grep -q "port=8080" /tmp/envsubst-suffix/service.conf.subst; then
-            echo "FAIL: expected 'port=8080' in service.conf.subst"
+          echo "Output file contents:"
+          cat "$OUTPUT_FILE"
+          if ! grep -q "DATABASE_URL=postgres://localhost:5432/mydb" "$OUTPUT_FILE"; then
+            echo "FAIL: expected DATABASE_URL to be substituted"
             exit 1
           fi
-          echo "PASS"
+          if ! grep -q "API_KEY=secret-key-12345" "$OUTPUT_FILE"; then
+            echo "FAIL: expected API_KEY to be substituted"
+            exit 1
+          fi
+          echo "PASS: default .subst suffix was applied and variables were substituted"

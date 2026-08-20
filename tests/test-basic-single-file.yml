@@ -1,0 +1,38 @@
+name: Test basic single file substitution
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Run envsubst action on single file
+        id: action
+        uses: .
+        env:
+          GREETING: World
+          PLACE: GitHub Actions
+        with:
+          working-directory: tests/fixtures/single
+          input-file: template.txt
+          output-file: output.txt
+
+      - name: Assert output file was created with substituted values
+        run: |
+          OUTPUT_FILE="$GITHUB_WORKSPACE/tests/fixtures/single/output.txt"
+          if [ ! -f "$OUTPUT_FILE" ]; then
+            echo "FAIL: output file was not created"
+            exit 1
+          fi
+          echo "Output file contents:"
+          cat "$OUTPUT_FILE"
+          if ! grep -q "Hello, World!" "$OUTPUT_FILE"; then
+            echo "FAIL: expected 'Hello, World!' in output"
+            exit 1
+          fi
+          if ! grep -q "Welcome to GitHub Actions" "$OUTPUT_FILE"; then
+            echo "FAIL: expected 'Welcome to GitHub Actions' in output"
+            exit 1
+          fi
+          echo "PASS: environment variables were substituted correctly"
