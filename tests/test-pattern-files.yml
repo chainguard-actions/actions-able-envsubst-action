@@ -1,0 +1,82 @@
+name: Test pattern-based envsubst
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create multiple input files with env var placeholders
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/tests/tmp-pattern"
+          cat > "$GITHUB_WORKSPACE/tests/tmp-pattern/config1.tmpl" <<'EOF'
+          service: ${SERVICE_NAME}
+          port: ${SERVICE_PORT}
+          EOF
+          cat > "$GITHUB_WORKSPACE/tests/tmp-pattern/config2.tmpl" <<'EOF'
+          region: ${DEPLOY_REGION}
+          env: ${DEPLOY_ENV}
+          EOF
+
+      - name: Run envsubst action with file pattern
+        id: action
+        uses: .
+        env:
+          SERVICE_NAME: my-service
+          SERVICE_PORT: "8080"
+          DEPLOY_REGION: us-east-1
+          DEPLOY_ENV: production
+        with:
+          working-directory: ${{ github.workspace }}/tests/tmp-pattern
+          input-file-pattern: "*.tmpl"
+          output-file-suffix: ".subst"
+
+      - name: Assert output files were created with substituted values
+        run: |
+          OUT1="$GITHUB_WORKSPACE/tests/tmp-pattern/config1.tmpl.subst"
+          OUT2="$GITHUB_WORKSPACE/tests/tmp-pattern/config2.tmpl.subst"
+
+          echo "--- config1.tmpl.subst ---"
+          cat "$OUT1"
+          echo "--- config2.tmpl.subst ---"
+          cat "$OUT2"
+          echo "--------------------------"
+
+          if [ ! -f "$OUT1" ]; then
+            echo "FAIL: expected output file config1.tmpl.subst not found"
+            exit 1
+          fi
+          if [ ! -f "$OUT2" ]; then
+            echo "FAIL: expected output file config2.tmpl.subst not found"
+            exit 1
+          fi
+          echo "PASS: both output files exist"
+
+          if ! grep -q "service: my-service" "$OUT1"; then
+            echo "FAIL: expected 'service: my-service' in config1.tmpl.subst"
+            exit 1
+          fi
+          echo "PASS: SERVICE_NAME substituted correctly"
+
+          if ! grep -q "port: 8080" "$OUT1"; then
+            echo "FAIL: expected 'port: 8080' in config1.tmpl.subst"
+            exit 1
+          fi
+          echo "PASS: SERVICE_PORT substituted correctly"
+
+          if ! grep -q "region: us-east-1" "$OUT2"; then
+            echo "FAIL: expected 'region: us-east-1' in config2.tmpl.subst"
+            exit 1
+          fi
+          echo "PASS: DEPLOY_REGION substituted correctly"
+
+          if ! grep -q "env: production" "$OUT2"; then
+            echo "FAIL: expected 'env: production' in config2.tmpl.subst"
+            exit 1
+          fi
+          echo "PASS: DEPLOY_ENV substituted correctly"
+
+      - name: Cleanup
+        if: always()
+        run: rm -rf "$GITHUB_WORKSPACE/tests/tmp-pattern"

@@ -1,32 +1,50 @@
-name: Test single file substitution
+name: Test single file envsubst
 on:
   workflow_dispatch:
 jobs:
   test:
     runs-on: ubuntu-latest
-    env:
-      MY_NAME: "WorldTest"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Create input file
+      - name: Create input file with env var placeholders
         run: |
-          mkdir -p /tmp/envsubst-test
-          echo "Hello, \$MY_NAME!" > /tmp/envsubst-test/input.txt
+          mkdir -p "$GITHUB_WORKSPACE/tests/tmp-single"
+          cat > "$GITHUB_WORKSPACE/tests/tmp-single/template.txt" <<'EOF'
+          Hello, ${GREETING_NAME}!
+          Version: ${APP_VERSION}
+          EOF
 
-      - id: action
+      - name: Run envsubst action on single file
+        id: action
         uses: .
+        env:
+          GREETING_NAME: World
+          APP_VERSION: "1.2.3"
         with:
-          working-directory: /tmp/envsubst-test
-          input-file: input.txt
+          working-directory: ${{ github.workspace }}/tests/tmp-single
+          input-file: template.txt
           output-file: output.txt
 
-      - name: Assert output file contains substituted value
+      - name: Assert output file was created with substituted values
         run: |
-          OUTPUT=$(cat /tmp/envsubst-test/output.txt)
-          echo "actual: $OUTPUT"
-          if [ "$OUTPUT" != "Hello, WorldTest!" ]; then
-            echo "FAIL: expected 'Hello, WorldTest!' but got '$OUTPUT'"
+          OUTPUT_FILE="$GITHUB_WORKSPACE/tests/tmp-single/output.txt"
+          echo "--- output file contents ---"
+          cat "$OUTPUT_FILE"
+          echo "----------------------------"
+
+          if ! grep -q "Hello, World!" "$OUTPUT_FILE"; then
+            echo "FAIL: expected 'Hello, World!' in output file"
             exit 1
           fi
-          echo "PASS"
+          echo "PASS: GREETING_NAME substituted correctly"
+
+          if ! grep -q "Version: 1.2.3" "$OUTPUT_FILE"; then
+            echo "FAIL: expected 'Version: 1.2.3' in output file"
+            exit 1
+          fi
+          echo "PASS: APP_VERSION substituted correctly"
+
+      - name: Cleanup
+        if: always()
+        run: rm -rf "$GITHUB_WORKSPACE/tests/tmp-single"
