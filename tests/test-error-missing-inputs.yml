@@ -1,0 +1,26 @@
+name: Test error handling for missing required inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        with:
+          working-directory: ${{ github.workspace }}/tests/fixtures/single
+          # Neither input-file nor input-file-pattern is provided — should fail
+        continue-on-error: true
+
+      - name: Assert action failed due to missing input-file and input-file-pattern
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" != "failure" ]; then
+            echo "FAIL: expected action to fail when neither input-file nor input-file-pattern is provided, but got '$OUTCOME'"
+            exit 1
+          fi
+          echo "PASS: action correctly failed with missing required inputs"

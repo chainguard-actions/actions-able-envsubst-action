@@ -1,0 +1,42 @@
+name: Test basic single-file envsubst substitution
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set env vars for substitution
+        run: |
+          echo "GREETING=hello" >> $GITHUB_ENV
+          echo "MY_NAME=world" >> $GITHUB_ENV
+          echo "APP_VERSION=1.2.3" >> $GITHUB_ENV
+
+      - id: action
+        uses: .
+        with:
+          working-directory: ${{ github.workspace }}/tests/fixtures/single
+          input-file: config.tmpl
+          output-file: config.out
+
+      - name: Assert output file was created with substituted values
+        run: |
+          OUT="$GITHUB_WORKSPACE/tests/fixtures/single/config.out"
+          echo "--- output file contents ---"
+          cat "$OUT"
+          echo "----------------------------"
+
+          if ! grep -q "greeting=hello" "$OUT"; then
+            echo "FAIL: expected 'greeting=hello' in output"
+            exit 1
+          fi
+          if ! grep -q "name=world" "$OUT"; then
+            echo "FAIL: expected 'name=world' in output"
+            exit 1
+          fi
+          if ! grep -q "version=1.2.3" "$OUT"; then
+            echo "FAIL: expected 'version=1.2.3' in output"
+            exit 1
+          fi
+          echo "PASS: all substitutions found in output file"

@@ -1,0 +1,39 @@
+name: Test pattern-based envsubst substitution
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set env vars for substitution
+        run: |
+          echo "SERVICE_HOST=myhost.example.com" >> $GITHUB_ENV
+          echo "SERVICE_PORT=8080" >> $GITHUB_ENV
+
+      - id: action
+        uses: .
+        with:
+          working-directory: ${{ github.workspace }}/tests/fixtures/pattern
+          input-file-pattern: "*.env.tmpl"
+          output-file-suffix: ".subst"
+
+      - name: Assert substituted output files were created for each template
+        run: |
+          for svc in service-a service-b; do
+            OUT="$GITHUB_WORKSPACE/tests/fixtures/pattern/${svc}.env.tmpl.subst"
+            echo "--- $OUT ---"
+            cat "$OUT"
+            echo "------------"
+
+            if ! grep -q "HOST=myhost.example.com" "$OUT"; then
+              echo "FAIL: expected 'HOST=myhost.example.com' in $OUT"
+              exit 1
+            fi
+            if ! grep -q "PORT=8080" "$OUT"; then
+              echo "FAIL: expected 'PORT=8080' in $OUT"
+              exit 1
+            fi
+          done
+          echo "PASS: all pattern-matched files were substituted correctly"
