@@ -1,0 +1,52 @@
+name: Test custom output-file-suffix with pattern
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create input template files
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/tests/tmp-suffix"
+          cat > "$GITHUB_WORKSPACE/tests/tmp-suffix/app.yaml.template" <<'EOF'
+          app: myapp
+          replicas: $REPLICAS
+          image: $IMAGE_TAG
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          working-directory: ${{ github.workspace }}/tests/tmp-suffix
+          input-file-pattern: "*.yaml.template"
+          output-file-suffix: ".rendered"
+        env:
+          REPLICAS: "3"
+          IMAGE_TAG: "myapp:v2.0.0"
+
+      - name: Assert output file has correct suffix and substituted content
+        run: |
+          OUT="$GITHUB_WORKSPACE/tests/tmp-suffix/app.yaml.template.rendered"
+          echo "--- output file contents ---"
+          cat "$OUT"
+          echo "----------------------------"
+
+          if [ ! -f "$OUT" ]; then
+            echo "FAIL: expected output file $OUT not found"
+            exit 1
+          fi
+          if ! grep -q "replicas: 3" "$OUT"; then
+            echo "FAIL: expected 'replicas: 3' in output"
+            exit 1
+          fi
+          if ! grep -q "image: myapp:v2.0.0" "$OUT"; then
+            echo "FAIL: expected 'image: myapp:v2.0.0' in output"
+            exit 1
+          fi
+          if ! grep -q "app: myapp" "$OUT"; then
+            echo "FAIL: expected 'app: myapp' in output (literal value should be preserved)"
+            exit 1
+          fi
+          echo "PASS: custom suffix applied and substitutions correct"

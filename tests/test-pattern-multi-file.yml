@@ -1,0 +1,66 @@
+name: Test pattern-based multi-file substitution
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create multiple input files with env variable placeholders
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/tests/tmp-pattern"
+          cat > "$GITHUB_WORKSPACE/tests/tmp-pattern/service-a.env.tmpl" <<'EOF'
+          SERVICE=service-a
+          ENV=$DEPLOY_ENV
+          EOF
+          cat > "$GITHUB_WORKSPACE/tests/tmp-pattern/service-b.env.tmpl" <<'EOF'
+          SERVICE=service-b
+          ENV=$DEPLOY_ENV
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          working-directory: ${{ github.workspace }}/tests/tmp-pattern
+          input-file-pattern: "*.env.tmpl"
+          output-file-suffix: ".subst"
+        env:
+          DEPLOY_ENV: production
+
+      - name: Assert output files exist and contain substituted values
+        run: |
+          OUT_A="$GITHUB_WORKSPACE/tests/tmp-pattern/service-a.env.tmpl.subst"
+          OUT_B="$GITHUB_WORKSPACE/tests/tmp-pattern/service-b.env.tmpl.subst"
+
+          echo "--- service-a output ---"
+          cat "$OUT_A"
+          echo "--- service-b output ---"
+          cat "$OUT_B"
+          echo "------------------------"
+
+          if [ ! -f "$OUT_A" ]; then
+            echo "FAIL: expected output file $OUT_A not found"
+            exit 1
+          fi
+          if [ ! -f "$OUT_B" ]; then
+            echo "FAIL: expected output file $OUT_B not found"
+            exit 1
+          fi
+          if ! grep -q "ENV=production" "$OUT_A"; then
+            echo "FAIL: expected 'ENV=production' in service-a output"
+            exit 1
+          fi
+          if ! grep -q "ENV=production" "$OUT_B"; then
+            echo "FAIL: expected 'ENV=production' in service-b output"
+            exit 1
+          fi
+          if ! grep -q "SERVICE=service-a" "$OUT_A"; then
+            echo "FAIL: expected 'SERVICE=service-a' in service-a output"
+            exit 1
+          fi
+          if ! grep -q "SERVICE=service-b" "$OUT_B"; then
+            echo "FAIL: expected 'SERVICE=service-b' in service-b output"
+            exit 1
+          fi
+          echo "PASS: all substitutions found in both output files"

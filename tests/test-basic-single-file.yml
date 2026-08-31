@@ -1,0 +1,49 @@
+name: Test basic single-file substitution
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create input file with env variable placeholders
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/tests/tmp-single"
+          cat > "$GITHUB_WORKSPACE/tests/tmp-single/config.tmpl" <<'EOF'
+          greeting=$GREETING
+          name=$MY_NAME
+          version=$APP_VERSION
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          working-directory: ${{ github.workspace }}/tests/tmp-single
+          input-file: config.tmpl
+          output-file: config.out
+        env:
+          GREETING: Hello
+          MY_NAME: World
+          APP_VERSION: "1.2.3"
+
+      - name: Assert output file exists and contains substituted values
+        run: |
+          OUT="$GITHUB_WORKSPACE/tests/tmp-single/config.out"
+          echo "--- output file contents ---"
+          cat "$OUT"
+          echo "----------------------------"
+
+          if ! grep -q "greeting=Hello" "$OUT"; then
+            echo "FAIL: expected 'greeting=Hello' in output"
+            exit 1
+          fi
+          if ! grep -q "name=World" "$OUT"; then
+            echo "FAIL: expected 'name=World' in output"
+            exit 1
+          fi
+          if ! grep -q "version=1.2.3" "$OUT"; then
+            echo "FAIL: expected 'version=1.2.3' in output"
+            exit 1
+          fi
+          echo "PASS: all substitutions found in output file"
